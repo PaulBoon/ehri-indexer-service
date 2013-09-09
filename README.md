@@ -62,6 +62,16 @@ DELETE
   Remove the index for all the entities of the specified type.   
   
 
+### Index children
+  
+POST
+
+- index/{type}/{id}
+  
+  Index all the child entities of the specified (parent) entity. 
+  Note that for now the type need to be specified and must be the type of the parent. 
+
+
 Example usage
 -------------
 
