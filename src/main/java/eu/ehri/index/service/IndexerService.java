@@ -7,14 +7,17 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.Provider;
 
 import org.codehaus.jackson.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.sun.jersey.spi.inject.SingletonTypeInjectableProvider;
 
 import eu.ehri.project.indexer.Indexer;
 import eu.ehri.project.indexer.converter.impl.JsonConverter;
@@ -28,8 +31,16 @@ import eu.ehri.project.indexer.source.impl.WebJsonSource;
 @Path("/index")
 public class IndexerService {
     private static Logger LOG = LoggerFactory.getLogger(IndexerService.class);
+	private Index index = new SolrIndex(getConfig().getSolrEhriUrl());
 	private Configuration config = new Configuration();
-	private Index index = new SolrIndex(config.getSolrEhriUrl());
+
+	public Configuration getConfig() {
+		return config;
+	}
+
+	public Index getIndex() {
+		return index;
+	}
 
 	/**
 	 * Index an entity by its ID (same id as from the Graph database)
@@ -43,18 +54,13 @@ public class IndexerService {
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_XML)
 	public Response indexById(@PathParam("id") String id) {
-	    Indexer.Builder<JsonNode> builder = new Indexer.Builder<JsonNode>();
-	    //if (LOG.isDebugEnabled()) {
-	    //	builder.addSink(new OutputStreamJsonSink(System.out, true));
-	    //}
-	    builder.addSink(new IndexJsonSink(index));
-	    
-	    String specs = "@" + id; // Note that we could construct it without the urlsFromSpecs
-        for (URI uri : Indexer.urlsFromSpecs(config.getNeo4jEhriUrl(), specs)) {
+		Indexer.Builder<JsonNode> builder = getNeo4jToSolrIndexerBuilder();
+
+		String specs = "@" + id; // Note that we could construct it without the urlsFromSpecs
+        for (URI uri : Indexer.urlsFromSpecs(getConfig().getNeo4jEhriUrl(), specs)) {
             builder.addSource(new WebJsonSource(uri));
         }
 
-        builder.addConverter(new JsonConverter());
         
         try {
         	builder.build().iterate();
@@ -82,7 +88,7 @@ public class IndexerService {
 	
         try {
         	String[] ids = {id};
-        	index.deleteItems(Lists.newArrayList(ids), true);
+        	getIndex().deleteItems(Lists.newArrayList(ids), true);
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
     				.build();
@@ -102,20 +108,14 @@ public class IndexerService {
 	@Path("/type/{type}")
 	@Produces(MediaType.APPLICATION_XML)
 	public Response indexByType(@PathParam("type") String type) {
-	    Indexer.Builder<JsonNode> builder = new Indexer.Builder<JsonNode>();
-	    //if (LOG.isDebugEnabled()) {
-	    //	builder.addSink(new OutputStreamJsonSink(System.out, true));
-	    //}
-	    builder.addSink(new IndexJsonSink(index));
+		Indexer.Builder<JsonNode> builder = getNeo4jToSolrIndexerBuilder();
 	    
 	    String specs = type; // Note that we could construct it without the urlsFromSpecs
 	    // Also note that we retrieve all entities, 
 	    // but the ehri-indexer takes care of handling memmory consumption
-        for (URI uri : Indexer.urlsFromSpecs(config.getNeo4jEhriUrl(), specs)) {
+        for (URI uri : Indexer.urlsFromSpecs(getConfig().getNeo4jEhriUrl(), specs)) {
             builder.addSource(new WebJsonSource(uri));
         }
-
-        builder.addConverter(new JsonConverter());
         
         try {
         	builder.build().iterate();
@@ -140,7 +140,7 @@ public class IndexerService {
     	try {
     		// no splitting, assume one type
     		String[] types = {type};
-    		index.deleteTypes(Lists.newArrayList(types), true);
+    		getIndex().deleteTypes(Lists.newArrayList(types), true);
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
     				.build();
@@ -150,4 +150,18 @@ public class IndexerService {
 				.build();
 	}
 	
+	protected Indexer.Builder<JsonNode> getNeo4jToSolrIndexerBuilder()
+	{
+	    Indexer.Builder<JsonNode> builder = new Indexer.Builder<JsonNode>();
+	    //if (LOG.isDebugEnabled()) {
+	    //	builder.addSink(new OutputStreamJsonSink(System.out, true));
+	    //}
+	    builder.addSink(new IndexJsonSink(index));
+        builder.addConverter(new JsonConverter());
+
+        return builder;
+	}
+	
+
+
 }
