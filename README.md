@@ -3,7 +3,7 @@ ehri-indexer-service
 
 Simple indexing webservice for the EHRI Neo4j REST DB. 
 
-It allows to get the EHRI 'entities' from the Neo4j graph database and update (or create) a 'document' in the EHRI Sorl search index. Thes indexed documents can also be removed. 
+It allows to get the EHRI 'entities' from the Neo4j graph database and update (or create) a 'document' in the EHRI Sorl search index. These indexed documents can also be removed. 
 
 
 Installation
@@ -29,7 +29,7 @@ Deploy the war, should be OK using Tomcat6 because that was used during developm
 
 RESTfull Resources
 ------------------
-Allthough no data is sent in thhe request body, indexing is done via a POST request. The data is retrieved from the Neo4j graph DB using the information in the request uri. 
+Although no data is sent in the request body, indexing is done via a POST request. The data is retrieved from the Neo4j graph DB using the information in the request uri. 
 
 ### Index by ID
 
@@ -107,5 +107,13 @@ Use the commandline tool and not the service, if that works anything wrong is do
 	$ java -jar ehri-indexer-1.0-SNAPSHOT.jar --pretty @$USER
 	
 Should give JSON output for that user. 
+
+
+Issues
+------
+If the Indexer lib/commandline tool is updateted it (https://github.com/mikesname/ehri-indexer) needs to be build from source and copied to the 'in project' repository:  
+
+libs/ehri-indexer/ehri-indexer/1.0-SNAPSHOT/ehri-indexer-1.0-SNAPSHOT.jar
+
 
 
