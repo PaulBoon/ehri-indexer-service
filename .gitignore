@@ -61,3 +61,7 @@ neo4j-community-1.9*
 
 # Ignore test data folder
 testdata
+
+# DO not ignore the lib
+!libs/ehri-indexer/ehri-indexer/1.0-SNAPSHOT/ehri-indexer-1.0-SNAPSHOT.jar
+
