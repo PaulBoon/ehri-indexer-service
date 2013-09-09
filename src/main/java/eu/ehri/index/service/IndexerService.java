@@ -31,8 +31,8 @@ import eu.ehri.project.indexer.source.impl.WebJsonSource;
 @Path("/index")
 public class IndexerService {
     private static Logger LOG = LoggerFactory.getLogger(IndexerService.class);
-	private Index index = new SolrIndex(getConfig().getSolrEhriUrl());
 	private Configuration config = new Configuration();
+	private Index index = new SolrIndex(getConfig().getSolrEhriUrl());
 
 	public Configuration getConfig() {
 		return config;
@@ -52,7 +52,6 @@ public class IndexerService {
 	 */
 	@POST
 	@Path("/{id}")
-	@Produces(MediaType.APPLICATION_XML)
 	public Response indexById(@PathParam("id") String id) {
 		Indexer.Builder<JsonNode> builder = getNeo4jToSolrIndexerBuilder();
 
@@ -106,7 +105,6 @@ public class IndexerService {
 	 */
 	@POST
 	@Path("/type/{type}")
-	@Produces(MediaType.APPLICATION_XML)
 	public Response indexByType(@PathParam("type") String type) {
 		Indexer.Builder<JsonNode> builder = getNeo4jToSolrIndexerBuilder();
 	    
@@ -150,6 +148,38 @@ public class IndexerService {
 				.build();
 	}
 	
+	/**
+	 * Index all 'children' of a given entity
+	 * We need to specify the type because of the Indexer. 
+	 * Otherwise I would prefer /{id}/list
+	 * 
+	 * @param type
+	 * @return
+	 */
+	@POST
+	@Path("/type/{type}/{id}")
+	public Response indexChidren(@PathParam("id") String id, 
+			@PathParam("type") String type) {
+		Indexer.Builder<JsonNode> builder = getNeo4jToSolrIndexerBuilder();
+
+		// The Indexer needs a pipe delimited string like "{type}|{id}", 
+		// where the {type} only serves as an indicator for getting the children. 
+	    String specs = type + "|" + id; 
+        for (URI uri : Indexer.urlsFromSpecs(getConfig().getNeo4jEhriUrl(), specs)) {
+            builder.addSource(new WebJsonSource(uri));
+        }
+        
+        try {
+        	builder.build().iterate();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+    				.build();
+        }
+
+		return Response.status(Response.Status.ACCEPTED)
+				.build();
+	}
+	
 	protected Indexer.Builder<JsonNode> getNeo4jToSolrIndexerBuilder()
 	{
 	    Indexer.Builder<JsonNode> builder = new Indexer.Builder<JsonNode>();
@@ -161,7 +191,4 @@ public class IndexerService {
 
         return builder;
 	}
-	
-
-
 }
